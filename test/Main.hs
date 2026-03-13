@@ -1,4 +1,8 @@
 module Main (main) where
 
+import qualified Hox.LexerSpec
+import Test.Hspec
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented."
+main = hspec $ do
+  Hox.LexerSpec.spec

@@ -18,7 +18,7 @@ common warnings
 
 library
     import:           warnings
-    exposed-modules:  Hox.Lexer, Combinators.Parser
+    exposed-modules:  Hox.Lexer, Combinators.Parser, Combinators.Char, Combinators.Repetition
     -- other-modules:
     -- other-extensions:
     build-depends:    base ^>=4.18.3.0
@@ -40,11 +40,12 @@ executable hox
 test-suite hox-test
     import:           warnings
     default-language: Haskell2010
-    -- other-modules:
+    other-modules:  Hox.LexerSpec
     -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
     build-depends:
         base ^>=4.18.3.0,
-        hox
+        hox,
+        hspec
