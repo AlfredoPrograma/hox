@@ -9,6 +9,7 @@ import Combinators.Repetition (many0, many1)
 import Combinators.String (bracket, until)
 import Control.Applicative (Alternative ((<|>)))
 import Control.Monad (void)
+import Data.Char (isAlphaNum)
 
 data TokenKind
   = -- Single char tokens
@@ -34,6 +35,8 @@ data TokenKind
   | LessEq
   | -- Multichar tokens
     Str
+  | Number
+  | Identifier
   deriving (Show, Eq)
 
 data Token = Token
@@ -48,10 +51,33 @@ scanTokens = do
   _ <- newlines
   _ <- comment
   many1
-    ( string
+    ( identifier
+        <|> string
+        <|> number
         <|> twoCharChainableToken
         <|> singleCharToken
     )
+
+identifier :: Parser Token
+identifier = Token Identifier <$> many1 (satisfy identifierCh)
+  where
+    identifierCh ch = isAlphaNum ch || ch == '_'
+
+number :: Parser Token
+number = Token Number <$> rawNumber
+  where
+    rawNumber = float <|> int <|> ((: []) <$> digitOrZero)
+    digit = satisfy (\ch -> ch >= '1' && ch <= '9')
+    digitOrZero = digit <|> char '0'
+    int = do
+      d <- digit
+      rest <- many0 digitOrZero
+      return (d : rest)
+    float = do
+      i <- int
+      _ <- char '.'
+      f <- many1 digitOrZero
+      return (i ++ "." ++ f)
 
 string :: Parser Token
 string = bracket (char '"') token (char '"')
@@ -59,7 +85,7 @@ string = bracket (char '"') token (char '"')
     -- TODO: maybe improve and add some "invalidChars" binding and fold it into a single boolean
     -- TODO: add multiline support and line parse state updating on them
     content = many0 $ satisfy (\ch -> ch /= '\n' && ch /= '"')
-    token = fmap (Token Str) content
+    token = Token Str <$> content
 
 newlines :: Parser ()
 newlines = void $ many0 newline
@@ -86,7 +112,7 @@ comment = comment' <|> pure ()
       return ()
 
 twoCharChainableToken :: Parser Token
-twoCharChainableToken = fmap toToken (pair <|> single)
+twoCharChainableToken = toToken <$> (pair <|> single)
   where
     -- TODO: careful with backtracking. prefix (single) is being computed per each parsing possibility
     toToken str = Token {kind = fromLexeme str, lexeme = str}
@@ -116,7 +142,7 @@ singleCharToken =
 
 charAsToken :: Char -> Parser Token
 charAsToken ch = do
-  str <- fmap (: []) (char ch)
+  str <- (: []) <$> char ch
   return $
     Token {kind = fromLexeme str, lexeme = str}
 

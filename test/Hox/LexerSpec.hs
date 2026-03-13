@@ -3,7 +3,7 @@ module Hox.LexerSpec (spec) where
 import Combinators.Parser (ParseState (..), Parser (parse))
 import Combinators.Repetition (many1)
 import Data.Maybe (fromJust, isNothing)
-import Hox.Lexer (Token (..), TokenKind (..), comment, newlines, singleCharToken, twoCharChainableToken, whitespaces)
+import Hox.Lexer (Token (..), TokenKind (..), comment, identifier, newlines, number, singleCharToken, string, twoCharChainableToken, whitespaces)
 import Test.Hspec
 
 spec :: Spec
@@ -59,6 +59,45 @@ spec = do
       let input = ParseState "@" 1
           result = parse twoCharChainableToken input
       isNothing result `shouldBe` True
+
+  describe "identifier" $ do
+    it "returns token for identifier" $ do
+      let input = ParseState "myVar" 1
+          result = fst $ fromJust $ parse identifier input
+          expected = Token Identifier "myVar"
+      result `shouldBe` expected
+
+  describe "string" $ do
+    it "returns token for valid input" $ do
+      let input = ParseState "\"Hello world\"" 1
+          result = fst $ fromJust $ parse string input
+          expected = Token Str "Hello world"
+      result `shouldBe` expected
+
+  describe "number" $ do
+    it "returns token for single digit number" $ do
+      let input = ParseState "1" 1
+          result = fst $ fromJust $ parse number input
+          expected = Token Number "1"
+      result `shouldBe` expected
+
+    it "returns token for multiple digit integer number" $ do
+      let input = ParseState "255" 1
+          result = fst $ fromJust $ parse number input
+          expected = Token Number "255"
+      result `shouldBe` expected
+
+    it "returns token for multiple digit floating point number" $ do
+      let input = ParseState "120.0592" 1
+          result = fst $ fromJust $ parse number input
+          expected = Token Number "120.0592"
+      result `shouldBe` expected
+
+    it "returns just integer part for incomplete floating point number" $ do
+      let input = ParseState "100." 1
+          result = fst $ fromJust $ parse number input
+          expected = Token Number "100"
+      result `shouldBe` expected
 
   describe "comments" $ do
     it "consumes input but ignores comments" $ do
