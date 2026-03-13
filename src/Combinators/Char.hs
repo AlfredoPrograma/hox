@@ -1,0 +1,21 @@
+module Combinators.Char where
+
+import Combinators.Parser (ParseState (..), Parser (..))
+
+-- Matches next character of the source with the target character.
+char :: Char -> Parser Char
+char ch = Parser validate
+  where
+    validate s@ParseState {source = (x : xs)}
+      | x == ch = Just (x, s {source = xs})
+      | otherwise = Nothing
+    validate ParseState {source = []} = Nothing
+
+-- Applies predicate on next character of the source and success if True.
+charPred :: (Char -> Bool) -> Parser Char
+charPred f = Parser validate
+  where
+    validate s@ParseState {source = (x : xs)}
+      | f x = Just (x, s {source = xs})
+      | otherwise = Nothing
+    validate ParseState {source = []} = Nothing

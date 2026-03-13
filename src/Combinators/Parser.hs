@@ -1,11 +1,13 @@
 module Combinators.Parser where
 
+import Control.Applicative (Alternative (empty, (<|>)))
 import Data.Bifunctor (first)
 
 data ParseState = ParseState
-  { rest :: String, -- Rest of the input to be consumed.
+  { source :: String, -- Rest of the input to be consumed.
     line :: Int -- Current line of the parsing process position.
   }
+  deriving (Show)
 
 -- A `Parser` wraps a function from current parsing state to deterministic result and resulting parsing state.
 newtype Parser a = Parser {parse :: ParseState -> Maybe (a, ParseState)}
@@ -24,6 +26,12 @@ instance Applicative Parser where
       (f, r) <- parse p state
       (x, r') <- parse q r
       pure (f x, r')
+
+instance Alternative Parser where
+  empty = Parser $ const Nothing
+
+  p <|> q = Parser $
+    \state -> parse p state <|> parse q state
 
 instance Monad Parser where
   p >>= f = Parser $
