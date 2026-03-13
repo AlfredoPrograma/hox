@@ -1,6 +1,6 @@
 module Hox.Lexer where
 
-import Combinators.Char (char)
+import Combinators.Char (char, until)
 import Combinators.Parser (Parser (..))
 import Combinators.Repetition (many1)
 import Control.Applicative (Alternative ((<|>)))
@@ -36,7 +36,18 @@ data Token = Token
   deriving (Show, Eq)
 
 scanTokens :: Parser [Token]
-scanTokens = many1 singleCharToken
+scanTokens =
+  many1
+    ( twoCharChainableToken
+        <|> singleCharToken
+    )
+
+comment :: Parser ()
+comment = do
+  _ <- char '/'
+  _ <- char '/'
+  _ <- Combinators.Char.until (== '\n')
+  return ()
 
 twoCharChainableToken :: Parser Token
 twoCharChainableToken = fmap toToken (pair <|> single)
@@ -64,6 +75,8 @@ singleCharToken =
     <|> charAsToken ';'
     <|> charAsToken '/'
     <|> charAsToken '*'
+
+-- Helpers
 
 charAsToken :: Char -> Parser Token
 charAsToken ch = do

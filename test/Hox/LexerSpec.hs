@@ -3,7 +3,7 @@ module Hox.LexerSpec (spec) where
 import Combinators.Parser (ParseState (..), Parser (parse))
 import Combinators.Repetition (many1)
 import Data.Maybe (fromJust, isNothing)
-import Hox.Lexer (Token (..), TokenKind (..), singleCharToken, twoCharChainableToken)
+import Hox.Lexer (Token (..), TokenKind (..), comment, singleCharToken, twoCharChainableToken)
 import Test.Hspec
 
 spec :: Spec
@@ -59,3 +59,10 @@ spec = do
       let input = ParseState "@" 1
           result = parse twoCharChainableToken input
       isNothing result `shouldBe` True
+
+  describe "ignores comments" $ do
+    it "consumes input but ignores comments" $ do
+      let input = ParseState "// this is a comment\n" 1
+          result = snd $ fromJust $ parse comment input
+          expected = ParseState "\n" 1
+      source result `shouldBe` source expected
