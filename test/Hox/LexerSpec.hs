@@ -3,12 +3,12 @@ module Hox.LexerSpec (spec) where
 import Combinators.Parser (ParseState (..), Parser (parse))
 import Combinators.Repetition (many1)
 import Data.Maybe (fromJust, isNothing)
-import Hox.Lexer (Token (..), TokenKind (..), comment, singleCharToken, twoCharChainableToken)
+import Hox.Lexer (Token (..), TokenKind (..), comment, newlines, singleCharToken, twoCharChainableToken, whitespaces)
 import Test.Hspec
 
 spec :: Spec
 spec = do
-  describe "parses single char token" $ do
+  describe "single char lexemes" $ do
     it "returns token for each valid single char lexeme" $ do
       let input = ParseState "(){},.-+;/*" 1
           result = fst $ fromJust $ parse (many1 singleCharToken) input
@@ -32,7 +32,7 @@ spec = do
           result = parse singleCharToken input
       isNothing result `shouldBe` True
 
-  describe "parses single but also two char chainable lexemes" $ do
+  describe "two char chainable lexemes" $ do
     it "returns token for non chained lexemes" $ do
       let input = ParseState "=!<>" 1
           result = fst $ fromJust $ parse (many1 twoCharChainableToken) input
@@ -60,9 +60,23 @@ spec = do
           result = parse twoCharChainableToken input
       isNothing result `shouldBe` True
 
-  describe "ignores comments" $ do
+  describe "comments" $ do
     it "consumes input but ignores comments" $ do
       let input = ParseState "// this is a comment\n" 1
-          result = snd $ fromJust $ parse comment input
-          expected = ParseState "\n" 1
-      source result `shouldBe` source expected
+          result = source $ snd $ fromJust $ parse comment input
+          expected = source $ ParseState "\n" 1
+      result `shouldBe` expected
+
+  describe "whitespaces" $ do
+    it "consumes input but ignores whitespaces" $ do
+      let input = ParseState " \t \r \n" 1
+          result = source $ snd $ fromJust $ parse whitespaces input
+          expected = source $ ParseState "\n" 1
+      result `shouldBe` expected
+
+  describe "newlines" $ do
+    it "consumes input but ignores newline and also updates state" $ do
+      let input = ParseState "\n\n\n" 1
+          result = source $ snd $ fromJust $ parse newlines input
+          expected = source $ ParseState "" 3
+      result `shouldBe` expected

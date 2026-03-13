@@ -1,9 +1,13 @@
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Hox.Lexer where
 
 import Combinators.Char (char, until)
-import Combinators.Parser (Parser (..))
+import Combinators.Parser (ParseState (..), Parser (..))
 import Combinators.Repetition (many1)
 import Control.Applicative (Alternative ((<|>)))
+import Control.Monad (void)
 
 data TokenKind
   = -- Single char tokens
@@ -41,6 +45,21 @@ scanTokens =
     ( twoCharChainableToken
         <|> singleCharToken
     )
+
+newlines :: Parser ()
+newlines = void $ many1 newline
+  where
+    newline = Parser $
+      \case
+        ParseState {source = []} -> Nothing
+        s@ParseState {line, source = (_ : xs)} -> do
+          _ <- parse (char '\n') s
+          return ((), ParseState {line = line + 1, source = xs})
+
+whitespaces :: Parser ()
+whitespaces = void (many1 ws)
+  where
+    ws = char ' ' <|> char '\r' <|> char '\t'
 
 comment :: Parser ()
 comment = do
