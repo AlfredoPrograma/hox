@@ -3,9 +3,10 @@
 
 module Hox.Lexer where
 
-import Combinators.Char (char, until)
+import Combinators.Char (char)
 import Combinators.Parser (ParseState (..), Parser (..))
 import Combinators.Repetition (many1)
+import Combinators.String (until)
 import Control.Applicative (Alternative ((<|>)))
 import Control.Monad (void)
 
@@ -65,7 +66,7 @@ comment :: Parser ()
 comment = do
   _ <- char '/'
   _ <- char '/'
-  _ <- Combinators.Char.until (== '\n')
+  _ <- Combinators.String.until (== '\n')
   return ()
 
 twoCharChainableToken :: Parser Token

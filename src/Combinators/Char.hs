@@ -3,7 +3,6 @@
 module Combinators.Char where
 
 import Combinators.Parser (ParseState (..), Parser (..))
-import Combinators.Repetition (many1)
 
 -- Matches next character of the source with the target character.
 char :: Char -> Parser Char
@@ -33,11 +32,3 @@ satisfy f = Parser $
         then Just (x, s {source = xs})
         else Nothing
     ParseState {source = []} -> Nothing
-
--- Takes characters while predicate is truthty and returns the built string.
-while :: (Char -> Bool) -> Parser String
-while f = many1 $ satisfy f
-
--- Takes character until predicate is truthty and returns the built string.
-until :: (Char -> Bool) -> Parser String
-until f = many1 $ satisfy (not . f)
