@@ -3,10 +3,10 @@
 
 module Hox.Lexer where
 
-import Combinators.Char (char)
+import Combinators.Char (char, satisfy)
 import Combinators.Parser (ParseState (..), Parser (..))
-import Combinators.Repetition (many1)
-import Combinators.String (until)
+import Combinators.Repetition (many0, many1)
+import Combinators.String (bracket, until)
 import Control.Applicative (Alternative ((<|>)))
 import Control.Monad (void)
 
@@ -32,6 +32,8 @@ data TokenKind
   | GreaterEq
   | Less
   | LessEq
+  | -- Multichar tokens
+    Str
   deriving (Show, Eq)
 
 data Token = Token
@@ -41,14 +43,26 @@ data Token = Token
   deriving (Show, Eq)
 
 scanTokens :: Parser [Token]
-scanTokens =
+scanTokens = do
+  _ <- whitespaces
+  _ <- newlines
+  _ <- comment
   many1
-    ( twoCharChainableToken
+    ( string
+        <|> twoCharChainableToken
         <|> singleCharToken
     )
 
+string :: Parser Token
+string = bracket (char '"') token (char '"')
+  where
+    -- TODO: maybe improve and add some "invalidChars" binding and fold it into a single boolean
+    -- TODO: add multiline support and line parse state updating on them
+    content = many0 $ satisfy (\ch -> ch /= '\n' && ch /= '"')
+    token = fmap (Token Str) content
+
 newlines :: Parser ()
-newlines = void $ many1 newline
+newlines = void $ many0 newline
   where
     newline = Parser $
       \case
@@ -58,16 +72,18 @@ newlines = void $ many1 newline
           return ((), ParseState {line = line + 1, source = xs})
 
 whitespaces :: Parser ()
-whitespaces = void (many1 ws)
+whitespaces = void (many0 ws)
   where
     ws = char ' ' <|> char '\r' <|> char '\t'
 
 comment :: Parser ()
-comment = do
-  _ <- char '/'
-  _ <- char '/'
-  _ <- Combinators.String.until (== '\n')
-  return ()
+comment = comment' <|> pure ()
+  where
+    comment' = do
+      _ <- char '/'
+      _ <- char '/'
+      _ <- Combinators.String.until (== '\n')
+      return ()
 
 twoCharChainableToken :: Parser Token
 twoCharChainableToken = fmap toToken (pair <|> single)
