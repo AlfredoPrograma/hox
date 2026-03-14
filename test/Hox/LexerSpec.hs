@@ -3,7 +3,7 @@ module Hox.LexerSpec (spec) where
 import Combinators.Parser (ParseState (..), Parser (parse))
 import Combinators.Repetition (many1)
 import Data.Maybe (fromJust, isNothing)
-import Hox.Lexer (Token (..), TokenKind (..), comment, identifier, newlines, number, singleCharToken, string, twoCharChainableToken, whitespaces)
+import Hox.Lexer (Token (..), TokenKind (..), comment, keywordOrIdentifier, newlines, number, singleCharToken, string, twoCharChainableToken, whitespaces)
 import Test.Hspec
 
 spec :: Spec
@@ -60,11 +60,17 @@ spec = do
           result = parse twoCharChainableToken input
       isNothing result `shouldBe` True
 
-  describe "identifier" $ do
+  describe "keywordOrIdentifier" $ do
     it "returns token for identifier" $ do
       let input = ParseState "myVar" 1
-          result = fst $ fromJust $ parse identifier input
+          result = fst $ fromJust $ parse keywordOrIdentifier input
           expected = Token Identifier "myVar"
+      result `shouldBe` expected
+
+    it "returns token for keyword" $ do
+      let input = ParseState "or" 1
+          result = fst $ fromJust $ parse keywordOrIdentifier input
+          expected = Token Or "or"
       result `shouldBe` expected
 
   describe "string" $ do

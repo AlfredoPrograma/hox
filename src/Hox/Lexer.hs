@@ -37,6 +37,23 @@ data TokenKind
     Str
   | Number
   | Identifier
+  | -- Keywords
+    And
+  | Classy
+  | Else
+  | Falsy
+  | For
+  | Fun
+  | If
+  | Nil
+  | Or
+  | Print
+  | Return
+  | Super
+  | This
+  | Truthty
+  | Var
+  | While
   deriving (Show, Eq)
 
 data Token = Token
@@ -51,17 +68,24 @@ scanTokens = do
   _ <- newlines
   _ <- comment
   many1
-    ( identifier
+    ( keywordOrIdentifier
         <|> string
         <|> number
         <|> twoCharChainableToken
         <|> singleCharToken
     )
 
-identifier :: Parser Token
-identifier = Token Identifier <$> many1 (satisfy identifierCh)
+keywordOrIdentifier :: Parser Token
+keywordOrIdentifier = kwOrId
   where
-    identifierCh ch = isAlphaNum ch || ch == '_'
+    keywords = ["and", "class", "else", "false", "for", "fun", "if", "nil", "or", "print", "return", "super", "this", "true", "var", "while"]
+    validChars = many1 $ satisfy validChar
+    validChar ch = isAlphaNum ch || ch == '_'
+    kwOrId = do
+      chs <- validChars
+      if chs `elem` keywords
+        then return $ Token (fromLexeme chs) chs
+        else return $ Token Identifier chs
 
 number :: Parser Token
 number = Token Number <$> rawNumber
@@ -168,4 +192,20 @@ fromLexeme str = case str of
   "==" -> DoubleEq
   "<=" -> LessEq
   ">=" -> GreaterEq
+  "and" -> And
+  "class" -> Classy
+  "else" -> Else
+  "false" -> Falsy
+  "for" -> For
+  "fun" -> Fun
+  "if" -> If
+  "nil" -> Nil
+  "or" -> Or
+  "print" -> Print
+  "return" -> Return
+  "super" -> Super
+  "this" -> This
+  "true" -> Truthty
+  "var" -> Var
+  "while" -> While
   _ -> error "unrecognized lexeme"
