@@ -1,15 +1,12 @@
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
-
 module Hox.Lexer where
 
 import Combinators.Char (char, satisfy)
-import Combinators.Parser (ParseState (..), Parser (..))
+import Combinators.Parser (Parser (..))
 import Combinators.Repetition (many0, many1)
-import Combinators.String (bracket, until)
+import Combinators.String (bracket)
 import Control.Applicative (Alternative ((<|>)))
 import Control.Monad (void)
-import Data.Char (isAlphaNum)
+import Data.Char (isAlphaNum, isSpace)
 
 data TokenKind
   = -- Single char tokens
@@ -63,17 +60,15 @@ data Token = Token
   deriving (Show, Eq)
 
 scanTokens :: Parser [Token]
-scanTokens = do
-  _ <- whitespaces
-  _ <- newlines
-  _ <- comment
-  many1
-    ( keywordOrIdentifier
+scanTokens = many1 scanToken
+  where
+    scanToken = do
+      _ <- whitespaces
+      keywordOrIdentifier
         <|> string
         <|> number
         <|> twoCharChainableToken
         <|> singleCharToken
-    )
 
 keywordOrIdentifier :: Parser Token
 keywordOrIdentifier = kwOrId
@@ -111,29 +106,8 @@ string = bracket (char '"') token (char '"')
     content = many0 $ satisfy (\ch -> ch /= '\n' && ch /= '"')
     token = Token Str <$> content
 
-newlines :: Parser ()
-newlines = void $ many0 newline
-  where
-    newline = Parser $
-      \case
-        ParseState {source = []} -> Nothing
-        s@ParseState {line, source = (_ : xs)} -> do
-          _ <- parse (char '\n') s
-          return ((), ParseState {line = line + 1, source = xs})
-
 whitespaces :: Parser ()
-whitespaces = void (many0 ws)
-  where
-    ws = char ' ' <|> char '\r' <|> char '\t'
-
-comment :: Parser ()
-comment = comment' <|> pure ()
-  where
-    comment' = do
-      _ <- char '/'
-      _ <- char '/'
-      _ <- Combinators.String.until (== '\n')
-      return ()
+whitespaces = void $ many0 (satisfy isSpace)
 
 twoCharChainableToken :: Parser Token
 twoCharChainableToken = toToken <$> (pair <|> single)

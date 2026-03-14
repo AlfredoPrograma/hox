@@ -1,25 +1,22 @@
-{-# LANGUAGE LambdaCase #-}
-
 module Combinators.Char where
 
-import Combinators.Parser (ParseState (..), Parser (..))
-
--- Matches next character of the source with the target character.
-char :: Char -> Parser Char
-char ch = Parser validate
-  where
-    validate s@ParseState {source = (x : xs)}
-      | x == ch = Just (x, s {source = xs})
-      | otherwise = Nothing
-    validate ParseState {source = []} = Nothing
+import Combinators.Parser (Parser (..))
+import Control.Monad (void)
 
 -- Applies predicate to the next character of the source and consumes it only if
 -- predicate is True.
 satisfy :: (Char -> Bool) -> Parser Char
-satisfy f = Parser $
-  \case
-    s@ParseState {source = (x : xs)} ->
-      if f x
-        then Just (x, s {source = xs})
-        else Nothing
-    ParseState {source = []} -> Nothing
+satisfy f = Parser validate
+  where
+    validate (x : xs)
+      | f x = Just (x, xs)
+      | otherwise = Nothing
+    validate [] = Nothing
+
+-- Matches next character of the source with the target character.
+char :: Char -> Parser Char
+char ch = satisfy (== ch)
+
+-- Consumes next character and ignores it.
+next :: Parser ()
+next = void $ satisfy (const True)
